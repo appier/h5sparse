@@ -33,6 +33,7 @@ setup(
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=tests_require,
+    license="MIT",
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
