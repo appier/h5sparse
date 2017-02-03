@@ -114,6 +114,7 @@ Examples
    <4x3 sparse matrix of type '<class 'numpy.float64'>'
            with 4 stored elements in Compressed Sparse Row format>
 
+
 Version scheme
 --------------
 We use `semantic versioning <https://www.python.org/dev/peps/pep-0440/#semantic-versioning>`_.
