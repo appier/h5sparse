@@ -28,7 +28,7 @@ setup(
     version="0.0.1",
     description=description,
     long_description=long_description,
-    author='Ian Lin',
+    author='Appier Inc.',
     url='https://github.com/appier/h5sparse',
     setup_requires=setup_requires,
     install_requires=install_requires,
