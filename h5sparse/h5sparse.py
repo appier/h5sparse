@@ -9,11 +9,19 @@ FORMAT_DICT = {
 }
 
 
-def get_format(data):
+def get_format_str(data):
     for format_str, format_class in six.viewitems(FORMAT_DICT):
         if isinstance(data, format_class):
             return format_str
     raise ValueError("Data type {} is not supported.".format(type(data)))
+
+
+def get_format_class(format_str):
+    format_class = FORMAT_DICT.get(format_str, None)
+    if format_class is None:
+        raise ValueError("Format string {} is not supported."
+                         .format(format_str))
+    return format_class
 
 
 class Group(object):
@@ -55,7 +63,7 @@ class Group(object):
             group.create_dataset('indptr', data=data.h5py_group['indptr'], **kwargs)
         else:
             group = self.h5py_group.create_group(name)
-            group.attrs['h5sparse_format'] = get_format(data)
+            group.attrs['h5sparse_format'] = get_format_str(data)
             group.attrs['h5sparse_shape'] = data.shape
             group.create_dataset('data', data=data.data, **kwargs)
             group.create_dataset('indices', data=data.indices, **kwargs)
@@ -107,16 +115,19 @@ class Dataset(object):
             data = self.h5py_group['data'][indptr[0]:indptr[-1]]
             indices = self.h5py_group['indices'][indptr[0]:indptr[-1]]
             indptr -= indptr[0]
-            shape = (indptr.size - 1, self.h5py_group['shape'][1])
+            shape = (indptr.size - 1,
+                     self.h5py_group.attrs['h5sparse_shape'][1])
         else:
             raise NotImplementedError("Only support one slice as index.")
 
-        return ss.csr_matrix((data, indices, indptr), shape=shape)
+        format_class = get_format_class(self.h5py_group.attrs['h5sparse_format'])
+        return format_class((data, indices, indptr), shape=shape)
 
     @property
     def value(self):
         data = self.h5py_group['data'].value
         indices = self.h5py_group['indices'].value
         indptr = self.h5py_group['indptr'].value
-        shape = self.h5py_group['shape'].value
-        return ss.csr_matrix((data, indices, indptr), shape=shape)
+        shape = self.h5py_group.attrs['h5sparse_shape']
+        format_class = get_format_class(self.h5py_group.attrs['h5sparse_format'])
+        return format_class((data, indices, indptr), shape=shape)
