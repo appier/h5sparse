@@ -1,9 +1,10 @@
 import os
 from tempfile import mkstemp
 
-import scipy.sparse as ss
-import h5sparse
 import numpy as np
+import scipy.sparse as ss
+
+import h5sparse
 
 
 def test_create_and_read_dataset():
