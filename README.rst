@@ -34,6 +34,9 @@ Testing
 
 Examples
 --------
+
+Create dataset
+**************
 .. code:: python
 
    In [1]: import scipy.sparse as ss
@@ -47,9 +50,17 @@ Examples
       ...:                                [1, 1, 0]],
       ...:                               dtype=np.float64)
 
-   In [3]: with h5sparse.File("test.h5") as h5f:
-      ...:     h5f.create_dataset("sparse/matrix", data=sparse_matrix)
-      ...:
+   In [3]: # create dataset from scipy sparse matrix
+      ...: with h5sparse.File("test.h5") as h5f:
+      ...:     h5f.create_dataset('sparse/matrix', data=sparse_matrix)
+
+   In [4]: # you can also create dataset from another dataset
+      ...: with h5sparse.File("test.h5") as h5f:
+      ...:     h5f.create_dataset('sparse/matrix2', data=h5f['sparse/matrix'])
+
+Read dataset
+************
+.. code:: python
 
    In [5]: h5f = h5sparse.File("test.h5")
 
@@ -113,6 +124,33 @@ Examples
    Out[21]:
    <4x3 sparse matrix of type '<class 'numpy.float64'>'
            with 4 stored elements in Compressed Sparse Row format>
+
+Append dataset
+**************
+.. code:: python
+
+   In [22]: to_append = ss.csr_matrix([[0, 1, 1],
+       ...:                            [1, 0, 0]],
+       ...:                           dtype=np.float64)
+
+   In [23]: h5f.create_dataset('matrix', data=sparse_matrix, chunks=(100000,),
+       ...:                    maxshape=(None,))
+
+   In [24]: h5f['matrix'].append(to_append)
+
+   In [25]: h5f['matrix'].value
+   Out[25]:
+   <6x3 sparse matrix of type '<class 'numpy.float64'>'
+           with 7 stored elements in Compressed Sparse Row format>
+
+   In [26]: h5f['matrix'].value.toarray()
+   Out[26]:
+   array([[ 0.,  1.,  0.],
+          [ 0.,  0.,  1.],
+          [ 0.,  0.,  0.],
+          [ 1.,  1.,  0.],
+          [ 0.,  1.,  1.],
+          [ 1.,  0.,  0.]])
 
 
 Version scheme
