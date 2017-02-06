@@ -27,11 +27,21 @@ class Group(object):
         else:
             raise ValueError("Unexpected item type.")
 
-    def create_dataset(self, name, shape=None, dtype=None, data=None, **kwargs):  # pylint: disable=unused-argument
+    def create_dataset(self, name, shape=None, dtype=None, data=None,
+                       **kwargs): # pylint: disable=unused-argument
         """Create 4 datasets in a group to represent the sparse array"""
         if data is None:
             raise NotImplementedError("Only support create_dataset with "
                                       "existed data.")
+        elif isinstance(data, Dataset):
+            self.h5py_group.create_dataset(
+                name + '/data', data=data.h5py_group['data'], **kwargs)
+            self.h5py_group.create_dataset(
+                name + '/indices', data=data.h5py_group['indices'], **kwargs)
+            self.h5py_group.create_dataset(
+                name + '/indptr', data=data.h5py_group['indptr'], **kwargs)
+            self.h5py_group.create_dataset(
+                name + '/shape', data=data.h5py_group['shape'])
         else:
             self.h5py_group.create_dataset(
                 name + '/data', shape=data.data.shape, data=data.data,
