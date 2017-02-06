@@ -1,10 +1,24 @@
+import six
 import h5py
-import numpy as np
 import scipy.sparse as ss
 
 
+FORMAT_DICT = {
+    'csr': ss.csr_matrix,
+    'csc': ss.csc_matrix,
+}
+
+
+def get_format(data):
+    for format_str, format_class in six.viewitems(FORMAT_DICT):
+        if isinstance(data, format_class):
+            return format_str
+    raise ValueError("Data type {} is not supported.".format(type(data)))
+
+
 class Group(object):
-    """
+    """The HDF5 group that can detect and create sparse matrix.
+
     Parameters
     ==========
     h5py_group: h5py.Group
@@ -16,8 +30,7 @@ class Group(object):
     def __getitem__(self, key):
         h5py_item = self.h5py_group[key]
         if isinstance(h5py_item, h5py.Group):
-            if set(h5py_item.keys()) == set(['data', 'indices', 'indptr',
-                                             'shape']):
+            if 'h5sparse_format' in h5py_item.attrs:
                 # detect the sparse matrix
                 return Dataset(h5py_item)
             else:
@@ -28,42 +41,36 @@ class Group(object):
             raise ValueError("Unexpected item type.")
 
     def create_dataset(self, name, shape=None, dtype=None, data=None,
-                       **kwargs): # pylint: disable=unused-argument
-        """Create 4 datasets in a group to represent the sparse array"""
+                       format='csr', **kwargs):
+        """Create 4 datasets in a group to represent the sparse array."""
         if data is None:
             raise NotImplementedError("Only support create_dataset with "
                                       "existed data.")
         elif isinstance(data, Dataset):
-            self.h5py_group.create_dataset(
-                name + '/data', data=data.h5py_group['data'], **kwargs)
-            self.h5py_group.create_dataset(
-                name + '/indices', data=data.h5py_group['indices'], **kwargs)
-            self.h5py_group.create_dataset(
-                name + '/indptr', data=data.h5py_group['indptr'], **kwargs)
-            self.h5py_group.create_dataset(
-                name + '/shape', data=data.h5py_group['shape'])
+            group = self.h5py_group.create_group(name)
+            group.attrs['h5sparse_format'] = data.h5py_group.attrs['h5sparse_format']
+            group.attrs['h5sparse_shape'] = data.h5py_group.attrs['h5sparse_shape']
+            group.create_dataset('data', data=data.h5py_group['data'], **kwargs)
+            group.create_dataset('indices', data=data.h5py_group['indices'], **kwargs)
+            group.create_dataset('indptr', data=data.h5py_group['indptr'], **kwargs)
         else:
-            self.h5py_group.create_dataset(
-                name + '/data', shape=data.data.shape, data=data.data,
-                **kwargs)
-            self.h5py_group.create_dataset(
-                name + '/indices', shape=data.indices.shape, data=data.indices,
-                **kwargs)
-            self.h5py_group.create_dataset(
-                name + '/indptr', shape=data.indptr.shape, data=data.indptr,
-                **kwargs)
-            self.h5py_group.create_dataset(
-                name + '/shape', data=np.asarray(data.shape))
+            group = self.h5py_group.create_group(name)
+            group.attrs['h5sparse_format'] = get_format(data)
+            group.attrs['h5sparse_shape'] = data.shape
+            group.create_dataset('data', data=data.data, **kwargs)
+            group.create_dataset('indices', data=data.indices, **kwargs)
+            group.create_dataset('indptr', data=data.indptr, **kwargs)
 
 
 class File(Group):
-    """
+    """The HDF5 file object that can detect and create sparse matrix.
+
     Parameters
     ==========
     *args, **kwargs: the parameters from h5py.File
     """
 
-    def __init__(self, *args, **kwargs):  # pylint: disable=super-init-not-called
+    def __init__(self, *args, **kwargs):
         self.h5f = h5py.File(*args, **kwargs)
         self.h5py_group = self.h5f
 
@@ -75,7 +82,8 @@ class File(Group):
 
 
 class Dataset(object):
-    """
+    """The HDF5 sparse matrix dataset.
+
     Parameters
     ==========
     h5py_group: h5py.Dataset

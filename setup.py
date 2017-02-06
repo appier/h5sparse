@@ -10,6 +10,7 @@ install_requires = [
     'h5py',
     'numpy',
     'scipy',
+    'six',
 ]
 tests_require = []
 
