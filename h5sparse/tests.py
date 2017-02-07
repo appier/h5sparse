@@ -36,11 +36,10 @@ def test_create_dataset_from_dataset():
                                    [1, 1, 0]],
                                   dtype=np.float64)
     with h5sparse.File(from_h5_path) as from_h5f:
-        from_h5f.create_dataset('sparse/matrix', data=sparse_matrix)
+        from_dset = from_h5f.create_dataset('sparse/matrix', data=sparse_matrix)
 
         with h5sparse.File(to_h5_path) as to_h5f:
-            to_h5f.create_dataset('sparse/matrix',
-                                  data=sparse_matrix)
+            to_h5f.create_dataset('sparse/matrix', data=from_dset)
             assert (to_h5f['sparse/matrix'].value != sparse_matrix).size == 0
 
     os.remove(from_h5_path)

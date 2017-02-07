@@ -75,6 +75,7 @@ class Group(object):
                                  dtype=indices_dtype, **kwargs)
             group.create_dataset('indptr', data=data.indptr,
                                  dtype=indptr_dtype, **kwargs)
+        return Dataset(group)
 
 
 class File(Group):
