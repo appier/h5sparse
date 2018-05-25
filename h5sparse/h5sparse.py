@@ -66,7 +66,7 @@ class Group(object):
                                  dtype=indices_dtype, **kwargs)
             group.create_dataset('indptr', data=data.h5py_group['indptr'],
                                  dtype=indptr_dtype, **kwargs)
-        else:
+        elif ss.issparse(data):
             group = self.h5py_group.create_group(name)
             group.attrs['h5sparse_format'] = get_format_str(data)
             group.attrs['h5sparse_shape'] = data.shape
@@ -75,6 +75,10 @@ class Group(object):
                                  dtype=indices_dtype, **kwargs)
             group.create_dataset('indptr', data=data.indptr,
                                  dtype=indptr_dtype, **kwargs)
+        else:
+            # If `data` is not a sparse array, forward the arguments to h5py
+            return self.h5py_group.create_dataset(name, data=data, shape=shape,
+                                                  dtype=dtype, **kwargs)
         return Dataset(group)
 
 
