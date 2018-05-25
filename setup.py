@@ -26,7 +26,7 @@ with open('README.rst') as fp:
 
 setup(
     name='h5sparse',
-    version="0.0.4",
+    version="0.0.5",
     description=description,
     long_description=long_description,
     author='Appier Inc.',
