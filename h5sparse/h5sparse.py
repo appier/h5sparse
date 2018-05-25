@@ -37,7 +37,7 @@ class Group(object):
         self.h5py_group = h5py_group
 
     def __contains__(self, item):
-        return self.h5py_group.__contains__(item)
+        return item in self.h5py_group
 
     def __getitem__(self, key):
         h5py_item = self.h5py_group[key]
