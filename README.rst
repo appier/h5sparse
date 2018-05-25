@@ -58,6 +58,10 @@ Create dataset
       ...: with h5sparse.File("test.h5") as h5f:
       ...:     h5f.create_dataset('sparse/matrix2', data=h5f['sparse/matrix'])
 
+   In [5]: # you can also create dataset using the formats that original h5py accepts
+      ...: with h5sparse.File("test.h5") as h5f:
+      ...:     h5f.create_dataset('sparse/matrix3', data=[1,2,3])
+
 Read dataset
 ************
 .. code:: python
