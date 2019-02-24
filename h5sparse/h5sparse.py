@@ -113,6 +113,9 @@ class Dataset(h5py.Group):
         self.h5py_group = h5py_group
         self.shape = tuple(self.attrs['h5sparse_shape'])
         self.format_str = self.attrs['h5sparse_format']
+        self.dtype = h5py_group['data'].dtype
+        self.indptr_dtype = h5py_group['indptr'].dtype
+        self.indices_dtype = h5py_group['indices'].dtype
 
     def __getitem__(self, key):
         if isinstance(key, slice):
