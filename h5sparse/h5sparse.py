@@ -25,44 +25,30 @@ def get_format_class(format_str):
     return format_class
 
 
-class Group(object):
+class Group(h5py.Group):
     """The HDF5 group that can detect and create sparse matrix.
-
-    Parameters
-    ==========
-    h5py_group: h5py.Group
     """
-
-    def __init__(self, h5py_group):
-        self.h5py_group = h5py_group
-
-    def __contains__(self, item):
-        return item in self.h5py_group
-
     def __getitem__(self, key):
-        h5py_item = self.h5py_group[key]
+        h5py_item = super(Group, self).__getitem__(key)
         if isinstance(h5py_item, h5py.Group):
             if 'h5sparse_format' in h5py_item.attrs:
                 # detect the sparse matrix
                 return Dataset(h5py_item)
             else:
-                return Group(h5py_item)
+                return Group(h5py_item.id)
         elif isinstance(h5py_item, h5py.Dataset):
             return h5py_item
         else:
             raise ValueError("Unexpected item type.")
 
     def create_dataset(self, name, shape=None, dtype=None, data=None,
-                       format='csr', indptr_dtype=np.int64, indices_dtype=np.int32,
+                       indptr_dtype=np.int64, indices_dtype=np.int32,
                        **kwargs):
-        """Create 4 datasets in a group to represent the sparse array."""
-        if data is None:
-            raise NotImplementedError("Only support create_dataset with "
-                                      "existed data.")
-        elif isinstance(data, Dataset):
-            group = self.h5py_group.create_group(name)
-            group.attrs['h5sparse_format'] = data.h5py_group.attrs['h5sparse_format']
-            group.attrs['h5sparse_shape'] = data.h5py_group.attrs['h5sparse_shape']
+        """Create 3 datasets in a group to represent the sparse array."""
+        if isinstance(data, Dataset):
+            group = self.create_group(name)
+            group.attrs['h5sparse_format'] = data.attrs['h5sparse_format']
+            group.attrs['h5sparse_shape'] = data.attrs['h5sparse_shape']
             group.create_dataset('data', data=data.h5py_group['data'],
                                  dtype=dtype, **kwargs)
             group.create_dataset('indices', data=data.h5py_group['indices'],
@@ -70,7 +56,7 @@ class Group(object):
             group.create_dataset('indptr', data=data.h5py_group['indptr'],
                                  dtype=indptr_dtype, **kwargs)
         elif ss.issparse(data):
-            group = self.h5py_group.create_group(name)
+            group = self.create_group(name)
             group.attrs['h5sparse_format'] = get_format_str(data)
             group.attrs['h5sparse_shape'] = data.shape
             group.create_dataset('data', data=data.data, dtype=dtype, **kwargs)
@@ -80,40 +66,29 @@ class Group(object):
                                  dtype=indptr_dtype, **kwargs)
         else:
             # If `data` is not a sparse array, forward the arguments to h5py
-            return self.h5py_group.create_dataset(name, data=data, shape=shape,
-                                                  dtype=dtype, **kwargs)
+            return super(Group, self).create_dataset(
+                name, data=data, shape=shape, dtype=dtype, **kwargs)
         return Dataset(group)
 
 
-class File(Group):
+class File(h5py.File, Group):
     """The HDF5 file object that can detect and create sparse matrix.
-
-    Parameters
-    ==========
-    *args, **kwargs: the parameters from h5py.File
     """
-
-    def __init__(self, *args, **kwargs):
-        self.h5f = h5py.File(*args, **kwargs)
-        self.h5py_group = self.h5f
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.h5f.__exit__(exc_type, exc_value, traceback)
+    pass
 
 
-class Dataset(object):
+class Dataset(h5py.Group):
     """The HDF5 sparse matrix dataset.
 
     Parameters
     ==========
     h5py_group: h5py.Dataset
     """
-
     def __init__(self, h5py_group):
+        super(Dataset, self).__init__(h5py_group.id)
         self.h5py_group = h5py_group
+        self.shape = self.attrs['h5sparse_shape']
+        self.format_str = self.attrs['h5sparse_format']
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -131,30 +106,27 @@ class Dataset(object):
             indices = self.h5py_group['indices'][indptr[0]:indptr[-1]]
             indptr -= indptr[0]
             shape = (indptr.size - 1,
-                     self.h5py_group.attrs['h5sparse_shape'][1])
+                     self.attrs['h5sparse_shape'][1])
+        elif isinstance(key, tuple) and key == ():
+            data = self.h5py_group['data'][()]
+            indices = self.h5py_group['indices'][()]
+            indptr = self.h5py_group['indptr'][()]
+            shape = self.attrs['h5sparse_shape']
         else:
             raise NotImplementedError("Only support one slice as index.")
 
-        format_class = get_format_class(self.h5py_group.attrs['h5sparse_format'])
+        format_class = get_format_class(self.attrs['h5sparse_format'])
         return format_class((data, indices, indptr), shape=shape)
 
     @property
     def value(self):
-        data = self.h5py_group['data'].value
-        indices = self.h5py_group['indices'].value
-        indptr = self.h5py_group['indptr'].value
-        shape = self.h5py_group.attrs['h5sparse_shape']
-        format_class = get_format_class(self.h5py_group.attrs['h5sparse_format'])
-        return format_class((data, indices, indptr), shape=shape)
+        return self[()]
 
     def append(self, sparse_matrix):
-        shape = self.h5py_group.attrs['h5sparse_shape']
-        format_str = self.h5py_group.attrs['h5sparse_format']
-
-        if format_str != get_format_str(sparse_matrix):
+        if self.format_str != get_format_str(sparse_matrix):
             raise ValueError("Format not the same.")
 
-        if format_str == 'csr':
+        if self.format_str == 'csr':
             # data
             data = self.h5py_group['data']
             orig_data_size = data.shape[0]
@@ -179,9 +151,9 @@ class Dataset(object):
             indices[orig_data_size:] = sparse_matrix.indices
 
             # shape
-            self.h5py_group.attrs['h5sparse_shape'] = (
-                shape[0] + sparse_matrix.shape[0],
-                max(shape[1], sparse_matrix.shape[1]))
+            self.attrs['h5sparse_shape'] = (
+                self.shape[0] + sparse_matrix.shape[0],
+                max(self.shape[1], sparse_matrix.shape[1]))
         else:
             raise NotImplementedError("The append method for format {} is not "
-                                      "implemented.".format(format_str))
+                                      "implemented.".format(self.format_str))

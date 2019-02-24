@@ -66,45 +66,45 @@ Read dataset
 ************
 .. code:: python
 
-   In [5]: h5f = h5sparse.File("test.h5")
+   In [6]: h5f = h5sparse.File("test.h5")
 
-   In [6]: h5f['sparse/matrix'][1:3]
-   Out[6]:
+   In [7]: h5f['sparse/matrix'][1:3]
+   Out[7]:
    <2x3 sparse matrix of type '<class 'numpy.float64'>'
            with 1 stored elements in Compressed Sparse Row format>
 
-   In [7]: h5f['sparse/matrix'][1:3].toarray()
-   Out[7]:
-   array([[ 0.,  0.,  1.],
-          [ 0.,  0.,  0.]])
-
-   In [8]: h5f['sparse']['matrix'][1:3].toarray()
+   In [8]: h5f['sparse/matrix'][1:3].toarray()
    Out[8]:
    array([[ 0.,  0.,  1.],
           [ 0.,  0.,  0.]])
 
-   In [9]: h5f['sparse']['matrix'][2:].toarray()
+   In [9]: h5f['sparse']['matrix'][1:3].toarray()
    Out[9]:
-   array([[ 0.,  0.,  0.],
-          [ 1.,  1.,  0.]])
+   array([[ 0.,  0.,  1.],
+          [ 0.,  0.,  0.]])
 
-   In [10]: h5f['sparse']['matrix'][:2].toarray()
+   In [10]: h5f['sparse']['matrix'][2:].toarray()
    Out[10]:
-   array([[ 0.,  1.,  0.],
-          [ 0.,  0.,  1.]])
-
-   In [11]: h5f['sparse']['matrix'][-2:].toarray()
-   Out[11]:
    array([[ 0.,  0.,  0.],
           [ 1.,  1.,  0.]])
 
-   In [12]: h5f['sparse']['matrix'][:-2].toarray()
-   Out[12]:
+   In [11]: h5f['sparse']['matrix'][:2].toarray()
+   Out[11]:
    array([[ 0.,  1.,  0.],
           [ 0.,  0.,  1.]])
 
-   In [13]: h5f['sparse']['matrix'].value.toarray()
+   In [12]: h5f['sparse']['matrix'][-2:].toarray()
+   Out[12]:
+   array([[ 0.,  0.,  0.],
+          [ 1.,  1.,  0.]])
+
+   In [13]: h5f['sparse']['matrix'][:-2].toarray()
    Out[13]:
+   array([[ 0.,  1.,  0.],
+          [ 0.,  0.,  1.]])
+
+   In [14]: h5f['sparse']['matrix'][()].toarray()
+   Out[14]:
    array([[ 0.,  1.,  0.],
           [ 0.,  0.,  1.],
           [ 0.,  0.,  0.],
@@ -112,20 +112,20 @@ Read dataset
 
    In [15]: import h5py
 
-   In [16]: h5f = h5py.File("test.h5")
+   In [16]: h5py_h5f = h5py.File("test.h5")
 
-   In [18]: h5sparse.Group(h5f)['sparse/matrix'].value
+   In [17]: h5sparse.Group(h5py_h5f.id)['sparse/matrix'][()]
+   Out[17]:
+   <4x3 sparse matrix of type '<class 'numpy.float64'>'
+           with 4 stored elements in Compressed Sparse Row format>
+
+   In [18]: h5sparse.Group(h5py_h5f['sparse'].id)['matrix'][()]
    Out[18]:
    <4x3 sparse matrix of type '<class 'numpy.float64'>'
            with 4 stored elements in Compressed Sparse Row format>
 
-   In [19]: h5sparse.Group(h5f['sparse'])['matrix'].value
+   In [19]: h5sparse.Dataset(h5py_h5f['sparse/matrix'])[()]
    Out[19]:
-   <4x3 sparse matrix of type '<class 'numpy.float64'>'
-           with 4 stored elements in Compressed Sparse Row format>
-
-   In [21]: h5sparse.Dataset(h5f['sparse/matrix']).value
-   Out[21]:
    <4x3 sparse matrix of type '<class 'numpy.float64'>'
            with 4 stored elements in Compressed Sparse Row format>
 
@@ -133,30 +133,25 @@ Append dataset
 **************
 .. code:: python
 
-   In [22]: to_append = ss.csr_matrix([[0, 1, 1],
+   In [20]: to_append = ss.csr_matrix([[0, 1, 1],
        ...:                            [1, 0, 0]],
        ...:                           dtype=np.float64)
 
-   In [23]: h5f.create_dataset('matrix', data=sparse_matrix, chunks=(100000,),
+   In [21]: h5f.create_dataset('matrix', data=sparse_matrix, chunks=(100000,),
        ...:                    maxshape=(None,))
 
-   In [24]: h5f['matrix'].append(to_append)
+   In [22]: h5f['matrix'].append(to_append)
 
-   In [25]: h5f['matrix'].value
-   Out[25]:
+   In [23]: h5f['matrix'][()]
+   Out[23]:
    <6x3 sparse matrix of type '<class 'numpy.float64'>'
            with 7 stored elements in Compressed Sparse Row format>
 
-   In [26]: h5f['matrix'].value.toarray()
-   Out[26]:
+   In [24]: h5f['matrix'][()].toarray()
+   Out[24]:
    array([[ 0.,  1.,  0.],
           [ 0.,  0.,  1.],
           [ 0.,  0.,  0.],
           [ 1.,  1.,  0.],
           [ 0.,  1.,  1.],
           [ 1.,  0.,  0.]])
-
-
-Version scheme
---------------
-We use `semantic versioning <https://www.python.org/dev/peps/pep-0440/#semantic-versioning>`_.

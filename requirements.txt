@@ -6,3 +6,5 @@ scipy
 pylint
 tox
 flake8
+nose
+coverage
