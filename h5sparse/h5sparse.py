@@ -42,13 +42,10 @@ class Group(h5py.Group):
             raise ValueError("Unexpected item type.")
 
     def create_dataset(self, name, shape=None, dtype=None, data=None,
-                       format='csr', indptr_dtype=np.int64, indices_dtype=np.int32,
+                       indptr_dtype=np.int64, indices_dtype=np.int32,
                        **kwargs):
-        """Create 4 datasets in a group to represent the sparse array."""
-        if data is None:
-            raise NotImplementedError("Only support create_dataset with "
-                                      "existed data.")
-        elif isinstance(data, Dataset):
+        """Create 3 datasets in a group to represent the sparse array."""
+        if isinstance(data, Dataset):
             group = self.create_group(name)
             group.attrs['h5sparse_format'] = data.attrs['h5sparse_format']
             group.attrs['h5sparse_shape'] = data.attrs['h5sparse_shape']
@@ -90,6 +87,8 @@ class Dataset(h5py.Group):
     def __init__(self, h5py_group):
         super(Dataset, self).__init__(h5py_group.id)
         self.h5py_group = h5py_group
+        self.shape = self.attrs['h5sparse_shape']
+        self.format_str = self.attrs['h5sparse_format']
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -124,13 +123,10 @@ class Dataset(h5py.Group):
         return self[()]
 
     def append(self, sparse_matrix):
-        shape = self.attrs['h5sparse_shape']
-        format_str = self.attrs['h5sparse_format']
-
-        if format_str != get_format_str(sparse_matrix):
+        if self.format_str != get_format_str(sparse_matrix):
             raise ValueError("Format not the same.")
 
-        if format_str == 'csr':
+        if self.format_str == 'csr':
             # data
             data = self.h5py_group['data']
             orig_data_size = data.shape[0]
@@ -156,8 +152,8 @@ class Dataset(h5py.Group):
 
             # shape
             self.attrs['h5sparse_shape'] = (
-                shape[0] + sparse_matrix.shape[0],
-                max(shape[1], sparse_matrix.shape[1]))
+                self.shape[0] + sparse_matrix.shape[0],
+                max(self.shape[1], sparse_matrix.shape[1]))
         else:
             raise NotImplementedError("The append method for format {} is not "
-                                      "implemented.".format(format_str))
+                                      "implemented.".format(self.format_str))
