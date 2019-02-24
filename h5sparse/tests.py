@@ -66,7 +66,9 @@ def test_create_empty_sparse_dataset():
         result_matrix = h5f['sparse']['matrix'][()]
         assert isinstance(result_matrix, ss.csr_matrix)
         assert result_matrix.shape == (0, 0)
+        assert result_matrix.dtype == np.float64
         assert h5f['sparse']['matrix'].shape == (0, 0)
+        assert h5f['sparse']['matrix'].dtype == np.float64
 
     os.remove(h5_path)
 
