@@ -91,3 +91,12 @@ def test_bytestring():
         assert 'strings' in h5f
         assert strings == json.loads(h5f['strings'][()].decode('utf8'))
     os.remove(h5_path)
+
+
+def test_create_empty_dataset():
+    h5_path = mkstemp(suffix=".h5")[1]
+    with h5sparse.File(h5_path) as h5f:
+        h5f.create_dataset('empty_data', shape=(100, 200))
+    with h5sparse.File(h5_path) as h5f:
+        assert h5f['empty_data'].shape == (100, 200)
+    os.remove(h5_path)
