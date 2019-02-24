@@ -30,6 +30,47 @@ def test_create_and_read_dataset():
     os.remove(h5_path)
 
 
+def test_create_dataset_with_format_change():
+    h5_path = mkstemp(suffix=".h5")[1]
+    sparse_matrix = ss.csr_matrix([[0, 1, 0, 1],
+                                   [0, 0, 1, 0],
+                                   [0, 0, 0, 1],
+                                   [1, 1, 0, 1]],
+                                  dtype=np.float64)
+    with h5sparse.File(h5_path) as h5f:
+        h5f.create_dataset('sparse/matrix', data=sparse_matrix, sparse_format='csc')
+    with h5sparse.File(h5_path) as h5f:
+        assert 'sparse' in h5f
+        assert 'matrix' in h5f['sparse']
+        assert h5f['sparse']['matrix'].format_str == 'csc'
+        result_matrix = h5f['sparse']['matrix'][()]
+        assert isinstance(result_matrix, ss.csc_matrix)
+        assert (result_matrix != sparse_matrix).size == 0
+        assert (h5f['sparse']['matrix'][1:3] != sparse_matrix[:, 1:3]).size == 0
+        assert (h5f['sparse']['matrix'][2:] != sparse_matrix[:, 2:]).size == 0
+        assert (h5f['sparse']['matrix'][:2] != sparse_matrix[:, :2]).size == 0
+        assert (h5f['sparse']['matrix'][-2:] != sparse_matrix[:, -2:]).size == 0
+        assert (h5f['sparse']['matrix'][:-2] != sparse_matrix[:, :-2]).size == 0
+
+    os.remove(h5_path)
+
+
+def test_create_empty_sparse_dataset():
+    h5_path = mkstemp(suffix=".h5")[1]
+    with h5sparse.File(h5_path) as h5f:
+        h5f.create_dataset('sparse/matrix', sparse_format='csr')
+    with h5sparse.File(h5_path) as h5f:
+        assert 'sparse' in h5f
+        assert 'matrix' in h5f['sparse']
+        assert h5f['sparse']['matrix'].format_str == 'csr'
+        result_matrix = h5f['sparse']['matrix'][()]
+        assert isinstance(result_matrix, ss.csr_matrix)
+        assert result_matrix.shape == (0, 0)
+        assert h5f['sparse']['matrix'].shape == (0, 0)
+
+    os.remove(h5_path)
+
+
 def test_create_dataset_from_dataset():
     from_h5_path = mkstemp(suffix=".h5")[1]
     to_h5_path = mkstemp(suffix=".h5")[1]
