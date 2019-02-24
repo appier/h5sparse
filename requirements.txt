@@ -5,3 +5,4 @@ scipy
 
 pylint
 tox
+flake8
