@@ -15,7 +15,7 @@ def test_create_and_read_dataset():
                                    [0, 0, 0],
                                    [1, 1, 0]],
                                   dtype=np.float64)
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('sparse/matrix', data=sparse_matrix)
     with h5sparse.File(h5_path) as h5f:
         assert 'sparse' in h5f
@@ -37,7 +37,7 @@ def test_create_dataset_with_format_change():
                                    [0, 0, 0, 1],
                                    [1, 1, 0, 1]],
                                   dtype=np.float64)
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('sparse/matrix', data=sparse_matrix, sparse_format='csc')
     with h5sparse.File(h5_path) as h5f:
         assert 'sparse' in h5f
@@ -57,7 +57,7 @@ def test_create_dataset_with_format_change():
 
 def test_create_empty_sparse_dataset():
     h5_path = mkstemp(suffix=".h5")[1]
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('sparse/matrix', sparse_format='csr')
     with h5sparse.File(h5_path) as h5f:
         assert 'sparse' in h5f
@@ -81,10 +81,10 @@ def test_create_dataset_from_dataset():
                                    [0, 0, 0],
                                    [1, 1, 0]],
                                   dtype=np.float64)
-    with h5sparse.File(from_h5_path) as from_h5f:
+    with h5sparse.File(from_h5_path, 'w') as from_h5f:
         from_dset = from_h5f.create_dataset('sparse/matrix', data=sparse_matrix)
 
-        with h5sparse.File(to_h5_path) as to_h5f:
+        with h5sparse.File(to_h5_path, 'w') as to_h5f:
             to_h5f.create_dataset('sparse/matrix', data=from_dset)
             assert 'sparse' in to_h5f
             assert 'matrix' in to_h5f['sparse']
@@ -106,7 +106,7 @@ def test_dataset_append():
                               dtype=np.float64)
     appended_matrix = ss.vstack((sparse_matrix, to_append))
 
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('matrix', data=sparse_matrix, chunks=(100000,),
                            maxshape=(None,))
         h5f['matrix'].append(to_append)
@@ -118,7 +118,7 @@ def test_dataset_append():
 def test_numpy_array():
     h5_path = mkstemp(suffix=".h5")[1]
     matrix = np.random.rand(3, 5)
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('matrix', data=matrix)
         assert 'matrix' in h5f
         np.testing.assert_equal(h5f['matrix'][()], matrix)
@@ -129,7 +129,7 @@ def test_bytestring():
     h5_path = mkstemp(suffix=".h5")[1]
     strings = [str(i) for i in range(100)]
     data = json.dumps(strings).encode('utf8')
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('strings', data=data)
         assert 'strings' in h5f
         assert strings == json.loads(h5f['strings'][()].decode('utf8'))
@@ -138,7 +138,7 @@ def test_bytestring():
 
 def test_create_empty_dataset():
     h5_path = mkstemp(suffix=".h5")[1]
-    with h5sparse.File(h5_path) as h5f:
+    with h5sparse.File(h5_path, 'w') as h5f:
         h5f.create_dataset('empty_data', shape=(100, 200))
     with h5sparse.File(h5_path) as h5f:
         assert h5f['empty_data'].shape == (100, 200)
